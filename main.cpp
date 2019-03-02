@@ -1,101 +1,132 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "header.h"
 
-struct SYM // представление символа 
-{ 
-unsigned char ch; // ASCII-код 
-float freq; // частота встречаемости 
-char code[256]; // массив для нового кода 
-struct SYM *left; // левый потомок в дереве 
-struct SYM *right; // правый потомок в дереве 
-};
+// to compress write in CMD "filename.txt compress"
+// to decompress write in CMD "filename.txt decompress"
 
-struct SYM* buildTree(struct SYM *psym[], int N) 
-{	// создаём временный узел 
-	struct SYM *temp=(struct SYM*)malloc(sizeof(struct SYM)); 
-	// в поле частоты записывается сумма частот 
-	// последнего и предпоследнего элементов массива psym
-	temp->freq=psym[N-2]->freq+psym[N-1]->freq; // связываем созданный узел с двумя последними узлами 
-	temp->left=psym[N-1]; 
-	temp->right=psym[N-2]; 
-	temp->code[0]=0; 
-	if(N==2) // мы сформировали корневой элемент с частотой 1.0 
-		return temp; 
-	else
-	{
-		for (int i = 0; i < N; i++)
-		{
-			if (psym[i]->freq <= temp->freq)
-			{
-				for (int j = N-1; j > i; j--)
-					psym[j] = psym[j-1];
-				psym[i] = temp;
-				break;
-				
-			}
-			
-		}
-		return buildTree(psym, N - 1);
-	}
-
-}
-
-void makeCodes(struct SYM *root) 
-{ 
-	if (root->left) 
-	{ 
-		strcpy(root->left->code, root->code); 
-		strcat(root->left->code, "0"); 
-		makeCodes(root->left); 
-	} 
-	if (root->right) 
-	{ 
-		strcpy(root->right->code, root->code); 
-		strcat(root->right->code, "1"); 
-		makeCodes(root->right); 
-	} 
-}
-
-int main()
+/*
+struct SYM			
 {
-	struct SYM syms[256];
+	unsigned char ch;
+	float freq;
+	char code[256];
+	struct SYM *left;
+	struct SYM *right;
+};
+*/
 
-	
-	FILE *fp = fopen("file.txt", "r");
-	if (fp == 0)
+int main(int argc, char* argv[])
+{
+	// analyzator:
+
+	if (argc < 2)									// check arguments
 	{
-		puts("INPUT FILE ERROR!");
+		puts("Error! Not enough arguments! Please enter a filename in cmd for compress it!");
+		puts("To compress file enter 'filename.txt compress' in CMD");
+		puts("To decompress file enter 'filename.txt decompress' in CMD");
+		puts("In theory file extension may be different (not only .txt) =)");
+		puts("If you want to buy a full version please call 8-800-555-35-35");
 		return 1;
 	}
-	while (!feof(fp))
+	
+	if (strcmpi(argv[2], "compress") == NULL)		// COMPRESS
 	{
-		
+
+		FILE *fp = fopen(argv[1], "r");				// take filename from cmd
+		if (fp == NULL)								// check file opening
+		{
+			puts("ERROR! Cannot read file!");
+			return 1;
+		}
+
+		struct SYM buf[N * 2] = { 0 };				// structure array for letters
+		initializeArray(buf);			// fill each structure in array
+
+		char letter;					// one letter from file
+		long long count = 0;			// how much letters in the file
+
+		while (!feof(fp))
+		{
+			count++;
+			letter = fgetc(fp);
+			//fread(&letter, sizeof(char), 1, fp);
+			makeSymArray(buf, letter);
+		}
+		fclose(fp);
+
+		qsort(buf, N, sizeof(struct SYM), comp);
+
+		calculateFreq(buf, count);		// redefine count of letters to part of 1 (calculate frequency)
+
+		printArray(buf);
+
+
+		// code generation:
+
+		struct SYM *psym[N * 2];
+		for (int i = 0; i < N * 2; i++)
+		{
+			psym[i] = &buf[i];
+		}
+		struct SYM *root;
+		root = buildTree(psym, N);
+
+		printf("Root frequency (in all tree) = %f\n", root->freq);
+		makeCodes(root);
+
+		// make .101 file:
+
+		FILE *fp_in = fopen(argv[1], "r");
+		FILE *fp_101 = fopen("101.101", "w");					// coded .101 file
+		if (fp_101 == NULL)										// check file opening
+		{
+			puts("ERROR! Cannot create .101 file!");
+			return 1;
+		}
+
+		unsigned long long count_101 = 0;
+		while ((letter = fgetc(fp_in)) != -1)
+		{
+			for (int i = 0; i < N; i++)
+				if (buf[i].ch == (unsigned char)letter)
+				{
+					fputs(buf[i].code, fp_101);				// write symbol code into .101 file
+					count_101++;
+					break;
+				}
+		}
+		int tail = count_101 % 8;							// tail lenght
+		if (tail > 0)										// write tail to the .101 file
+		{
+			for (int i = 0; i <= tail; i++)
+				fputs("1", fp_101);
+		}
+
+		fclose(fp_in);
+		fclose(fp_101);
+
+		// pack file:
+
+		int error = packFile(buf, tail, argv[1]);
+		if (error == 1)
+			return 1;
+	}
+	else if (strcmpi(argv[2], "decompress") == NULL)		// DE-COMPRESS
+	{
+	int decError=decompress(argv[1]);
+	if (decError == 1)
+		return 1;
+
+
+	}
+	else													// ERROR
+	{
+		puts("ERROR! UNKNOWN COMMAND!");
+		return 1;
 	}
 
-	fclose(fp);
-	
-	/*
-	struct SYM syms[]=			// zaglushka
-	{
-		'x', 0.4, "", 0, 0,
-		'y', 0.25, "", 0, 0,
-		'z', 0.25, "", 0, 0,
-		'.', 0.1, "", 0, 0
-	};
-	*/
-	
-	
-	struct SYM *psym[8];
-	for (int i = 0; i < 8; i++)
-	{
-		psym[i] = &syms[i];
-	}
-	struct SYM *root;
-	root=buildTree(psym, 4);
-
-	printf("%f\n", root->freq);
-	makeCodes(root);
-
+	puts("Done successfully!");
 	return 0;
 }
