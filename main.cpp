@@ -34,7 +34,7 @@ int main(int argc, char* argv[])
 	if (strcmpi(argv[2], "compress") == NULL)		// COMPRESS
 	{
 
-		FILE *fp = fopen(argv[1], "r");				// take filename from cmd
+		FILE *fp = fopen(argv[1], "rb");			// take filename from cmd
 		if (fp == NULL)								// check file opening
 		{
 			puts("ERROR! Cannot read file!");
@@ -42,10 +42,10 @@ int main(int argc, char* argv[])
 		}
 
 		struct SYM buf[N * 2] = { 0 };				// structure array for letters
-		initializeArray(buf);			// fill each structure in array
+		initializeArray(buf);						// fill each structure in array
 
-		char letter;					// one letter from file
-		long long count = 0;			// how much letters in the file
+		char letter;								// one letter from file
+		long long count = 0;						// how much letters in the file
 
 		while (!feof(fp))
 		{
@@ -78,8 +78,8 @@ int main(int argc, char* argv[])
 
 		// make .101 file:
 
-		FILE *fp_in = fopen(argv[1], "r");
-		FILE *fp_101 = fopen("101.101", "w");					// coded .101 file
+		FILE *fp_in = fopen(argv[1], "rb");
+		FILE *fp_101 = fopen("101.101", "wb");					// coded .101 file
 		if (fp_101 == NULL)										// check file opening
 		{
 			puts("ERROR! Cannot create .101 file!");
@@ -93,15 +93,17 @@ int main(int argc, char* argv[])
 				if (buf[i].ch == (unsigned char)letter)
 				{
 					fputs(buf[i].code, fp_101);				// write symbol code into .101 file
-					count_101++;
+					count_101+=strlen(buf[i].code);
 					break;
 				}
 		}
-		int tail = count_101 % 8;							// tail lenght
+		int tail = 8-(count_101 % 8);							// tail lenght
+		char tailLetter = '1';
 		if (tail > 0)										// write tail to the .101 file
 		{
-			for (int i = 0; i <= tail; i++)
-				fputs("1", fp_101);
+			for (int k = 0; k < tail;k++)
+				fwrite(&tailLetter, sizeof(char), 1, fp_101);
+				//fputs("1", fp_101);
 		}
 
 		fclose(fp_in);

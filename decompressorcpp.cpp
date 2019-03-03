@@ -2,10 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include "header.h"
+#include <sys/stat.h>
 
 int decompress(char* filename)
 {
-	FILE *fp = fopen(filename, "r");				// take filename from cmd
+	FILE *fp = fopen(filename, "rb");				// take filename from cmd
 	if (fp == NULL)									// check file opening
 	{
 		puts("ERROR! Cannot read file!");
@@ -29,15 +30,15 @@ int decompress(char* filename)
 
 	long long i = 0;
 
-	while (1)										// read 'ch' and 'code'
+	while (i<256)									// read 'ch' and 'code'
 	{
 		fread(&buf[i].freq, sizeof(float), 1, fp);
-		if (buf[i].freq == 0.0)
-			break;
+	//	if (buf[i].freq == 0.0)
+	//		break;
 		fread(&buf[i].ch, sizeof(unsigned char), 1, fp);
 		i++;
 	}
-
+	i = 0;
 	fread(&tail, sizeof(int), 1, fp);
 	//fscanf(fp, "%d", &tail);						// read tail lenght
 
@@ -49,7 +50,7 @@ int decompress(char* filename)
 	fread(&filename_decomp[1], sizeof(char), filenameLenght, fp);
 	filename_decomp[1 + filenameLenght] = '\0';
 
-	FILE *fp_101 = fopen("decomp101.101", "w");
+	FILE *fp_101 = fopen("decomp101.101", "wb");
 	if (fp_101 == NULL)								// check file opening
 	{
 		puts("ERROR! Cannot create decompressed .101 file!");
@@ -68,7 +69,7 @@ int decompress(char* filename)
 
 	fclose(fp);
 	fclose(fp_101);
-	FILE *fp_101_2 = fopen("decomp101.101", "r");	// open .101 file again
+	FILE *fp_101_2 = fopen("decomp101.101", "rb");	// open .101 file again
 	
 	struct SYM *psym[N * 2];
 	for (int i = 0; i < N * 2; i++)
@@ -96,7 +97,7 @@ int decompress(char* filename)
 		code_101[i + 1] = '\0';
 		for (int j = 0; j < N; j++)					// find letter
 		{
-			if (strcmp(code_101, buf[j].code) == 0 && buf[j].left==nullptr && buf[j].right==nullptr)
+			if (strcmp(code_101, buf[j].code) == 0)
 			{
 				fwrite(&buf[j].ch, sizeof(unsigned char), 1, fp_decomp);
 				i = -1;
@@ -105,7 +106,7 @@ int decompress(char* filename)
 			else if (buf[j].freq == 0.0)
 			{
 				break;
-				i++;
+				//i++;
 			}
 		}
 		i++;
@@ -116,7 +117,7 @@ int decompress(char* filename)
 	code_101[strlen(code_101) - tail] = '\0';		// last symbol
 	for (int j = 0; j < N; j++)						// find letter
 	{
-		if (strcmp(code_101, buf[j].code) == 0 && buf[j].left == nullptr && buf[j].right == nullptr)
+		if (strcmp(code_101, buf[j].code) == 0)
 		{
 			fwrite(&buf[j].ch, sizeof(unsigned char), 1, fp_decomp);
 			break;
@@ -144,13 +145,4 @@ unsigned char* unpack(unsigned char *string, unsigned char letter)
 	string[6] = code.byte.b7 + '0';
 	string[7] = code.byte.b8 + '0';
 	return string;
-}
-
-char findLetter(struct SYM* buf, char *code_101)
-{
-	for (int i = 0; i < N; i++)
-	{
-		if (strcmp(code_101, buf[i].code) == 0)
-			return buf[i].ch;
-	}
 }

@@ -24,7 +24,7 @@ void makeCodes(struct SYM *root);
 
 // pack file
 int packFile(struct SYM *buf, int tail, char* filename);
-unsigned char pack(unsigned char buf[]);
+unsigned char pack(char buf[]);
 
 union CODE {
 	unsigned char ch;
@@ -43,4 +43,3 @@ union CODE {
 // DECOMPRESSOR:
 int decompress(char* filename);
 unsigned char* unpack(unsigned char *string, unsigned char letter);
-char findLetter(struct SYM* buf, char *code_101);
